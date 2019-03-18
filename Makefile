@@ -7,9 +7,13 @@ INCLUDES = \
 -I xtensor/include/ \
 -I xtensor-blas/include \
 -I xtensor-blas/include/xtensor-blas/flens \
--I matplotlib-cpp/ 
+-I matplotlib-cpp/
 
-LIBS = -lpython2.7
+LIBS = \
+-lpython2.7 \
+-lcblas \
+-lblas
+
 
 TGTS = `ls ch*/*.cpp | sed -e s/.cpp//`
 TGT ?= ch0/main
