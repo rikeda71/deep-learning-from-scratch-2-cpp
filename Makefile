@@ -3,14 +3,16 @@ COMPILER = g++-7
 INCLUDES = \
 -I common/ \
 -I /usr/include/python2.7/ \
+-I /opt/conda/pkgs/xtl-0.6.0-h6bb024c_0/include/ \
+-I xtensor/include/ \
 -I xtensor-blas/include \
 -I xtensor-blas/include/xtensor-blas/flens \
 -I matplotlib-cpp/ 
 
 LIBS = -lpython2.7
 
-TGTS = `ls ch*/src/*.cpp | sed -e s/.cpp//`
-TGT ?= ch0/src/main
+TGTS = `ls ch*/*.cpp | sed -e s/.cpp//`
+TGT ?= ch0/main
 SRCS += $(TGT).cpp
 BIN = $(TGT)
 OBJS = $(SRCS:.cpp=.o)
@@ -28,7 +30,7 @@ test: $(BIN)
 	docker run -it --rm -v $(PWD)/:/app dlscratch:latest ./$(BIN).o
 
 $(BIN): $(OBJS)
-	docker run -it --rm -v $(PWD)/:/app dlscratch:latest $(COMPILER) $(INCLUDES) -o $(OBJS) $@.cpp $(LIBS)
+	docker run -it --rm -v $(PWD)/:/app dlscratch:latest $(COMPILER) $(INCLUDES) -o $@ $@.cpp $(LIBS)
 
 .cpp.o: $(SRCS)
 	docker run -it --rm -v $(PWD)/:/app dlscratch:latest $(COMPILER) $(INCLUDES) -o $@ $< $(LIBS)
