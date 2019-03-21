@@ -1,5 +1,7 @@
 COMPILER = g++-7
 
+COMFLAGS = -std=c++14
+
 INCLUDES = \
 -I common/ \
 -I /usr/include/python2.7/ \
@@ -34,10 +36,10 @@ test: $(BIN)
 	docker run -it --rm -v $(PWD)/:/app dlscratch:latest ./$(BIN).o
 
 $(BIN): $(OBJS)
-	docker run -it --rm -v $(PWD)/:/app dlscratch:latest $(COMPILER) $(INCLUDES) -o $@ $@.cpp $(LIBS)
+	docker run -it --rm -v $(PWD)/:/app dlscratch:latest $(COMPILER) $(COMFLAGS) $(INCLUDES) -o $@ $@.cpp $(LIBS)
 
 .cpp.o: $(SRCS)
-	docker run -it --rm -v $(PWD)/:/app dlscratch:latest $(COMPILER) $(INCLUDES) -o $@ $< $(LIBS)
+	docker run -it --rm -v $(PWD)/:/app dlscratch:latest $(COMPILER) $(COMFLAGS) $(INCLUDES) -o $@ $< $(LIBS)
 
 clean:
 	rm -f $(BIN) $(OBJS)
