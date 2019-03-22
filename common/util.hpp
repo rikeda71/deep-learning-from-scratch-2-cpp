@@ -6,7 +6,7 @@
 using namespace std;
 
 template <class T>
-void cout_vector(vector<T> vec)
+void cout_vector(T vec)
 {
     cout << "{ ";
     for (int i = 0; i < vec.size(); i++)
