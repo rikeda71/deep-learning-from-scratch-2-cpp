@@ -9,11 +9,13 @@ using namespace std;
 using namespace xt;
 
 template <class T>
-xarray<double> sigmoid(T x) {
-    return 1 / (1  + exp(-x));
+xarray<double> sigmoid(T x)
+{
+    return 1 / (1 + exp(-x));
 }
 
-int main() {
+int main()
+{
     // 行列の乱数を使うときには必ず必要
     random::seed(100);
     // auto演算子：型推論ができる(c++11)

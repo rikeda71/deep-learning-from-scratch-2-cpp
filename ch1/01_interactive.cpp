@@ -6,11 +6,10 @@
 using namespace xt;
 using namespace std;
 
-
-int main() {
+int main()
+{
     xarray<double> x = {
-        1, 2, 3
-    };
+        1, 2, 3};
     cout << x << endl;
     cout << "形状 ";
     cout_vector(x.shape());
@@ -19,8 +18,7 @@ int main() {
     cout << "-------------" << endl;
     xarray<double> w = {
         {1, 2, 3},
-        {4, 5, 6}
-    };
+        {4, 5, 6}};
     cout << w << endl;
     cout << "形状 ";
     cout_vector(w.shape());
