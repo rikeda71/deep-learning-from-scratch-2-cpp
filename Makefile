@@ -1,9 +1,10 @@
 COMPILER = g++-7
 
-COMFLAGS = -std=c++14
+COMFLAGS = -std=c++17
 
 INCLUDES = \
 -I common/ \
+-I dataset/ \
 -I /usr/include/python2.7/ \
 -I /opt/conda/pkgs/xtl-0.6.0-h6bb024c_0/include/ \
 -I xtensor/include/ \
