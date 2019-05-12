@@ -5,15 +5,15 @@ COMFLAGS = -std=c++17
 INCLUDES = \
 -I common/ \
 -I dataset/ \
--I /usr/include/python2.7/ \
--I /opt/conda/pkgs/xtl-0.6.0-h6bb024c_0/include/ \
+-I /usr/include/python3.6/ \
+-I /opt/conda/pkgs/xtl-0.6.2-hc9558a2_0/include/ \
 -I xtensor/include/ \
 -I xtensor-blas/include \
 -I xtensor-blas/include/xtensor-blas/flens \
 -I matplotlib-cpp/
 
 LIBS = \
--lpython2.7 \
+-lpython3.6m \
 -lcblas \
 -lblas
 
