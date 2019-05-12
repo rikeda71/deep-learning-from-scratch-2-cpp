@@ -2,12 +2,15 @@
 #include "xtensor/xarray.hpp"
 #include "matplotlibcpp.h"
 #include "../dataset/spiral.hpp"
+#include "../common/util.hpp"
 
 namespace plt = matplotlibcpp;
 
 int main()
 {
-    auto [x, t] = load_data();
+    auto [vec_x, vec_t] = load_data();
+    auto x = xarray2vector(vec_x);
+    auto t = xarray2vector(vec_t);
     vector<double> points_x1;
     vector<double> points_y1;
     vector<double> points_x2;
@@ -22,18 +25,18 @@ int main()
     int i = 0;
     for (i = 0; i < N; i++)
     {
-        points_x1.push_back(x[0][i]);
-        points_y1.push_back(x[1][i]);
+        points_x1.push_back(x[i][0]);
+        points_y1.push_back(x[i][1]);
     }
     for (i = N; i < N * 2; i++)
     {
-        points_x2.push_back(x[0][i]);
-        points_y2.push_back(x[1][i]);
+        points_x2.push_back(x[i][0]);
+        points_y2.push_back(x[i][1]);
     }
     for (i = N * 2; i < N * 3; i++)
     {
-        points_x3.push_back(x[0][i]);
-        points_y3.push_back(x[1][i]);
+        points_x3.push_back(x[i][0]);
+        points_y3.push_back(x[i][1]);
     }
 
     plt::scatter(points_x1, points_y1, 40);

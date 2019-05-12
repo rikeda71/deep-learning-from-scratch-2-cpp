@@ -7,6 +7,17 @@
 
 using namespace std;
 
+vector<vector<int>> to_indexes(xt::xarray<int> t)
+{
+    int batch_size = t.shape()[0];
+    vector<vector<int>> indexes(batch_size);
+    for (int i = 0; i < batch_size; i++)
+    {
+        indexes.push_back({i, t[i]});
+    }
+    return indexes;
+}
+
 template <class T>
 void cout_vector(T vec)
 {

@@ -6,7 +6,10 @@
 #include "xtensor/xrandom.hpp"
 #include "xtensor/xsort.hpp"
 #include "xtensor-blas/xlinalg.hpp"
-#include "./functions.hpp"
+#include "functions.hpp"
+
+#include "xtensor/xio.hpp"
+#include "util.hpp"
 
 using namespace std;
 using namespace xt;
@@ -18,35 +21,31 @@ public:
   vector<xarray<double>> params, grads;
   // 基底クラスを定義するときは`~Class名() {}`を定義する必要がある
   virtual ~Base() {}
-  template <typename T>
-  virtual T forward(T x) = 0;
-  virtual T backward(T dout) = 0;
+  virtual xarray<double> forward(xarray<double> &&x) = 0;
+  virtual xarray<double> backward(xarray<double> &&dout) = 0;
 };
 
 class Sigmoid : public Base
 {
 public:
   Sigmoid() {}
-  template <typename T>
-  virtual T forward(T x);
-  virtual T backward(T dout);
+  virtual xarray<double> forward(xarray<double> &&x);
+  virtual xarray<double> backward(xarray<double> &&dout);
 
 private:
   xarray<double> out;
 };
 
-template <typename T>
-inline T Sigmoid::forward(T x)
+inline xarray<double> Sigmoid::forward(xarray<double> &&x)
 {
-  x = 1 / (1 + exp(-x));
-  out = x;
+  x = 1 / (1 + exp(-xarray<double>{x}));
+  this->out = xarray<double>{x};
   return x;
 }
 
-template <typename T>
-inline T Sigmoid::backward(T dout)
+inline xarray<double> Sigmoid::backward(xarray<double> &&dout)
 {
-  auto dx = dout * (1.0 - out) * out;
+  xarray<double> dx = xarray<double>{dout} * (1.0 - out) * out;
   return dx;
 }
 
@@ -54,68 +53,65 @@ class Softmax : public Base
 {
 public:
   Softmax() {}
-  template <typename T>
-  virtual T forward(T x);
-  virtual T backward(T dout);
+  virtual xarray<double> forward(xarray<double> &&x);
+  virtual xarray<double> backward(xarray<double> &&dout);
 
 private:
   xarray<double> out;
 };
 
-template <typename T>
-inline T Softmax::forward(T x)
+inline xarray<double> Softmax::forward(xarray<double> &&x)
 {
   out = softmax(x);
   return softmax(x);
 }
 
-template <typename T>
-inline T Softmax::backward(T dout)
+inline xarray<double> Softmax::backward(xarray<double> &&dout)
 {
   auto dx = out * dout;
   auto sumdx = sum(dx, {1});
-  dx = dx - out * sumdx;
-  return dx;
+  return dx - out * sumdx;
 }
 
-class SoftmaxWithLoss : public Base
+class SoftmaxWithLoss
 {
 public:
   SoftmaxWithLoss() {}
-  template <typename T>
-  virtual T forward(T x);
-  virtual T backward(T dout);
+  xarray<double> forward(xarray<double> &x, xarray<int> &&t);
+  xarray<double> backward(xarray<int> dout);
 
 private:
   xarray<double> y; // softmaxの出力
   xarray<int> t;    // 教師ラベル
 };
 
-template <typename T>
-inline T SoftmaxWithLoss::forward(T x)
+inline xarray<double> SoftmaxWithLoss::forward(xarray<double> &x, xarray<int> &&t)
 {
-  t = t;
-  y = softmax(x);
+  this->t = t;
+  this->y = softmax(std::forward<xarray<double>>(x));
 
   // 教師ラベルがone-hotの場合，正解のインデックスに変換
-  if (t.size() == y.size())
+  if (t.size() == this->y.size())
   {
-    t = argmax(t, 1);
+    t = argmax(xarray<int>{t}, 1);
   }
-  auto loss = cross_entropy_error(y, t);
+  xarray<double> loss = cross_entropy_error(xarray<double>(this->y), xarray<int>{t});
   return loss;
 }
 
-template <typename T>
-inline T SoftmaxWithLoss::backward(T dout)
+inline xarray<double> SoftmaxWithLoss::backward(xarray<int> dout)
 {
-  int batch_size = t.shape()[0];
-
-  auto dx = y;
-  dx[arange(batch_size), t] = dx[arange(batch_size), t] - 1;
+  int batch_size = this->t.shape()[0];
+  xarray<double> dx = this->y;
+  // 最適化する必要あり
+  // 行列計算ではなく，ただ，1を引くべき場所から引いているだけ
+  for (int i = 0; i < batch_size; i++)
+  {
+    dx(i, t[i]) -= 1;
+  }
+  //dx[arange(batch_size), t] = dx[arange(batch_size), t] - 1;
   dx = dx * dout;
   dx = dx / batch_size;
-
   return dx;
 }
 
@@ -127,16 +123,14 @@ public:
     params.push_back(W);
     grads.push_back(zeros<double>(W.shape()));
   }
-  template <typename T>
-  virtual T forward(T x);
-  virtual T backward(T dout);
+  virtual xarray<double> forward(xarray<double> &&x);
+  virtual xarray<double> backward(xarray<double> &&dout);
 
 private:
   xarray<double> x;
 };
 
-template <typename T>
-inline T MatMul::forward(T x)
+inline xarray<double> MatMul::forward(xarray<double> &&x)
 {
   xarray<double> W = params[0];
   xarray<double> out = linalg::dot(x, W);
@@ -144,8 +138,7 @@ inline T MatMul::forward(T x)
   return out;
 }
 
-template <typename T>
-inline T MatMul::backward(T dout)
+inline xarray<double> MatMul::backward(xarray<double> &&dout)
 {
   xarray<double> W = params[0];
   auto dx = linalg::dot(dout, transpose(W));
@@ -164,37 +157,35 @@ public:
     grads.push_back(zeros<double>(W.shape()));
     grads.push_back(zeros<double>(b.shape()));
   }
-  template <typename T>
-  virtual T forward(T x);
-  virtual T backward(T dout);
+
+  virtual xarray<double> forward(xarray<double> &&x);
+  virtual xarray<double> backward(xarray<double> &&dout);
 
 private:
   xarray<double> x;
 };
 
-template <typename T>
-inline T Affine::forward(T x)
+inline xarray<double> Affine::forward(xarray<double> &&x)
 {
   xarray<double> W = params[0];
   xarray<double> b = params[1];
-  auto out = linalg::dot(x, W) + b;
   this->x = x;
+  xarray<double> out = linalg::dot(std::forward<xarray<double>>(x), W) + b;
   return out;
 }
 
-template <typename T>
-inline T Affine::backward(T dout)
+inline xarray<double> Affine::backward(xarray<double> &&dout)
 {
   xarray<double> W = params[0];
   xarray<double> b = params[1];
-  auto dx = linalg::dot(dout, transpose(W));
-  auto dW = linalg::dot(transpose(x), dout);
-  auto db = sum(dout, {0});
+  xarray<double> dx = linalg::dot(xarray<double>{dout}, transpose(W));
+  xarray<double> dW = linalg::dot(transpose(this->x), xarray<double>{dout});
+  xarray<double> db = sum(xarray<double>{dout}, {0});
 
-  grads.clear();
-  grads.shrink_to_fit();
-  grads.push_back(dW);
-  grads.push_back(db);
+  this->grads.clear();
+  this->grads.shrink_to_fit();
+  this->grads.push_back(dW);
+  this->grads.push_back(db);
   return dx;
 }
 
