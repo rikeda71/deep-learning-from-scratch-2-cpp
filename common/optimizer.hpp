@@ -15,35 +15,35 @@ public:
     this->lr = lr;
   }
   template <typename T>
-  void update(vector<vector<T>> params, vector<vector<T>> grads);
-
-  template <typename T>
-  void update(T &params, T &&grads);
+  void update(vector<vector<T>> &params, vector<vector<T>> grads);
+  void update(vector<reference_wrapper<vector<T>>> &params, vector<reference_wrapper<vector<T>>> grads);
 
 private:
   double lr;
 };
 
 template <typename T>
-inline void SGD::update(vector<vector<T>> params, vector<vector<T>> grads)
+inline void SGD::update(vector<vector<T>> &params, vector<vector<T>> grads)
 {
   for (int i = 0; i < params.size(); i++)
   {
     for (int j = 0; j < params[i].size(); j++)
     {
-      SGD::update(params[i][j], T{grads[i][j]});
+      params[i][j] -= this->lr * grads[i][j];
     }
   }
 }
 
 template <typename T>
-inline void SGD::update(T &params, T &&grads)
+inline void SGD::update(vector<reference_wrapper<vector<T>>> &params, vector<reference_wrapper<vector<T>>> grads)
 {
-  // cout << T{params} << endl;
-  // cout << T{grads} << endl;
-  // TODO: ここのgradsの値が全て0になっている．どこかで値の代入がリセットされている
-  cout << this->lr * std::forward<T>(grads) << endl;
-  params -= this->lr * std::forward<T>(grads);
+  for (int i = 0; i < params.size(); i++)
+  {
+    for (int j = 0; j < params[i].get().size(); j++)
+    {
+      params[i].get()[j] -= this->lr * grads[i].get()[j];
+    }
+  }
 }
 
 #endif // OPTIMIZER_HPP
