@@ -22,7 +22,7 @@ T relu(T &&x)
     return maximum(0, std::forward<T>(x));
 }
 
-xarray<double> softmax(xarray<double> x)
+xarray<double> softmax(xarray<double> &&x)
 {
     xarray<double> amax_tmp;
     xarray<double> sum_tmp;

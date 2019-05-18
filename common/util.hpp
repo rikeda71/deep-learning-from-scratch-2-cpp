@@ -13,7 +13,7 @@ vector<vector<int>> to_indexes(xt::xarray<int> t)
     vector<vector<int>> indexes(batch_size);
     for (int i = 0; i < batch_size; i++)
     {
-        indexes.push_back({i, t[i]});
+        indexes[i] = {i, t[i]};
     }
     return indexes;
 }
