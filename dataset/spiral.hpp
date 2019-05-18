@@ -7,7 +7,7 @@
 #include "xtensor/xrandom.hpp"
 #include "../common/util.hpp"
 
-std::tuple<std::vector<std::vector<double>>, std::vector<std::vector<int>>> load_data(int seed = 1984)
+std::tuple<xt::xarray<double>, xt::xarray<int>> load_data(int seed = 1984)
 {
     xt::random::seed(seed);
     const int N = 100;     // sample size
@@ -17,8 +17,8 @@ std::tuple<std::vector<std::vector<double>>, std::vector<std::vector<int>>> load
     xt::xarray<double> randn = xt::random::randn<double>({CLS_NUM, N});
     int ix;
 
-    xt::xarray<double> x = xt::zeros<double>({DIM, N * CLS_NUM});
-    xt::xarray<int> t = xt::zeros<int>({CLS_NUM, N * CLS_NUM});
+    xt::xarray<double> x = xt::zeros<double>({N * CLS_NUM, DIM});
+    xt::xarray<int> t = xt::zeros<int>({N * CLS_NUM, CLS_NUM});
 
     for (int j = 0; j < CLS_NUM; j++)
     {
@@ -29,15 +29,13 @@ std::tuple<std::vector<std::vector<double>>, std::vector<std::vector<int>>> load
             theta = j * 4.0 + 4.0 * rate + randn[j, i] * 0.2;
 
             ix = N * j + i;
-            x(0, ix) = radius * std::sin(theta);
-            x(1, ix) = radius * std::cos(theta);
-            t(j, ix) = 1;
+            x(ix, 0) = radius * std::sin(theta);
+            x(ix, 1) = radius * std::cos(theta);
+            t(ix, j) = 1;
         }
     }
 
-    auto xx = xarray2vector(x);
-    auto tt = xarray2vector(t);
-    return {xx, tt};
+    return {x, t};
 }
 
 #endif // SPIRARL_HPP
