@@ -38,14 +38,14 @@ private:
 
 inline xarray<double> Sigmoid::forward(xarray<double> &&x)
 {
-  x = 1 / (1 + exp(-xarray<double>{x}));
-  this->out = xarray<double>{x};
-  return x;
+  auto out = 1 / (1 + exp(-xarray<double>{x}));
+  this->out = out;
+  return out;
 }
 
 inline xarray<double> Sigmoid::backward(xarray<double> &&dout)
 {
-  xarray<double> dx = xarray<double>{dout} * (1.0 - out) * out;
+  xarray<double> dx = std::forward<xarray<double>>(dout) * (1.0 - this->out) * this->out;
   return dx;
 }
 
@@ -62,15 +62,15 @@ private:
 
 inline xarray<double> Softmax::forward(xarray<double> &&x)
 {
-  out = softmax(x);
-  return softmax(x);
+  this->out = softmax(std::forward<xarray<double>>(x));
+  return this->out;
 }
 
 inline xarray<double> Softmax::backward(xarray<double> &&dout)
 {
-  auto dx = out * dout;
+  auto dx = this->out * dout;
   auto sumdx = sum(dx, {1});
-  return dx - out * sumdx;
+  return dx - this->out * sumdx;
 }
 
 class SoftmaxWithLoss
@@ -78,7 +78,7 @@ class SoftmaxWithLoss
 public:
   SoftmaxWithLoss() {}
   xarray<double> forward(xarray<double> &x, xarray<int> &&t);
-  xarray<double> backward(xarray<int> dout);
+  xarray<double> backward(xarray<int> &dout);
 
 private:
   xarray<double> y; // softmaxの出力
@@ -95,22 +95,30 @@ inline xarray<double> SoftmaxWithLoss::forward(xarray<double> &x, xarray<int> &&
   {
     t = argmax(xarray<int>{t}, 1);
   }
-  xarray<double> loss = cross_entropy_error(xarray<double>(this->y), xarray<int>{t});
+  xarray<double> loss = cross_entropy_error(std::forward<xarray<double>>(this->y), xarray<int>{t});
   return loss;
 }
 
-inline xarray<double> SoftmaxWithLoss::backward(xarray<int> dout)
+inline xarray<double> SoftmaxWithLoss::backward(xarray<int> &dout)
 {
   int batch_size = this->t.shape()[0];
+  int idx_size = this->t.shape()[1];
   xarray<double> dx = this->y;
   // 最適化する必要あり
   // 行列計算ではなく，ただ，1を引くべき場所から引いているだけ
+  // index_viewというxtensorのメソッドが使えそう
   for (int i = 0; i < batch_size; i++)
   {
-    dx(i, t[i]) -= 1;
+    for (int j = 0; j < idx_size; j++)
+    {
+      if (t(i, j) == 1)
+      {
+        dx(i, j) -= 1;
+        break;
+      }
+    }
   }
-  //dx[arange(batch_size), t] = dx[arange(batch_size), t] - 1;
-  dx = dx * dout;
+  dx *= std::forward<xarray<int>>(dout);
   dx = dx / batch_size;
   return dx;
 }
@@ -169,8 +177,8 @@ inline xarray<double> Affine::forward(xarray<double> &&x)
 {
   xarray<double> W = params[0];
   xarray<double> b = params[1];
-  this->x = x;
-  xarray<double> out = linalg::dot(std::forward<xarray<double>>(x), W) + b;
+  xarray<double> out = linalg::dot(xarray<double>{x}, W) + b;
+  this->x = xarray<double>{x};
   return out;
 }
 
@@ -182,10 +190,8 @@ inline xarray<double> Affine::backward(xarray<double> &&dout)
   xarray<double> dW = linalg::dot(transpose(this->x), xarray<double>{dout});
   xarray<double> db = sum(xarray<double>{dout}, {0});
 
-  this->grads.clear();
-  this->grads.shrink_to_fit();
-  this->grads.push_back(dW);
-  this->grads.push_back(db);
+  this->grads[0] = dW;
+  this->grads[1] = db;
   return dx;
 }
 
