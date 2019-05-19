@@ -82,6 +82,6 @@ int main()
     plt::plot(loss_list);
     plt::xlabel("iteration(x10)");
     plt::ylabel("loss");
-    plt::save("./ch1/loss.png");
+    plt::save("./loss.png");
     return 0;
 }
