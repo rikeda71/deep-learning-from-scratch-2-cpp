@@ -6,44 +6,43 @@
 #include "util.hpp"
 
 using namespace std;
+using namespace xt;
 
-class SGD
+class OptBase
+{
+public:
+  virtual ~OptBase() {}
+  virtual void update(vector<xarray<double>> &params, vector<xarray<double>> grads) = 0;
+  virtual void update(vector<reference_wrapper<xarray<double>>> &params, vector<reference_wrapper<xarray<double>>> grads) = 0;
+
+protected:
+  double lr; // learning rate
+};
+
+class SGD : public OptBase
 {
 public:
   SGD(double lr)
   {
     this->lr = lr;
   }
-  template <typename T>
-  void update(vector<vector<T>> &params, vector<vector<T>> grads);
-  template <typename T>
-  void update(vector<reference_wrapper<vector<T>>> &params, vector<reference_wrapper<vector<T>>> grads);
-
-private:
-  double lr;
+  virtual void update(vector<xarray<double>> &params, vector<xarray<double>> grads);
+  virtual void update(vector<reference_wrapper<xarray<double>>> &params, vector<reference_wrapper<xarray<double>>> grads);
 };
 
-template <typename T>
-inline void SGD::update(vector<vector<T>> &params, vector<vector<T>> grads)
+inline void SGD::update(vector<xarray<double>> &params, vector<xarray<double>> grads)
 {
   for (int i = 0; i < params.size(); i++)
   {
-    for (int j = 0; j < params[i].size(); j++)
-    {
-      params[i][j] -= this->lr * grads[i][j];
-    }
+    params[i] -= this->lr * grads[i];
   }
 }
 
-template <typename T>
-inline void SGD::update(vector<reference_wrapper<vector<T>>> &params, vector<reference_wrapper<vector<T>>> grads)
+inline void SGD::update(vector<reference_wrapper<xarray<double>>> &params, vector<reference_wrapper<xarray<double>>> grads)
 {
   for (int i = 0; i < params.size(); i++)
   {
-    for (int j = 0; j < params[i].get().size(); j++)
-    {
-      params[i].get()[j] -= this->lr * grads[i].get()[j];
-    }
+    params[i].get() -= this->lr * grads[i].get();
   }
 }
 
