@@ -79,4 +79,11 @@ int main()
             }
         }
     }
+    vector<int> iteration(loss_list.size());
+    iota(iteration.begin(), iteration.end(), 1);
+    plt::plot(loss_list);
+    plt::xlabel("iteration(x10)");
+    plt::ylabel("loss");
+    plt::save("./ch1/loss.png");
+    return 0;
 }
