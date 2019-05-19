@@ -16,6 +16,7 @@ public:
   }
   template <typename T>
   void update(vector<vector<T>> &params, vector<vector<T>> grads);
+  template <typename T>
   void update(vector<reference_wrapper<vector<T>>> &params, vector<reference_wrapper<vector<T>>> grads);
 
 private:
