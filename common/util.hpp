@@ -3,7 +3,12 @@
 
 #include <iostream>
 #include <vector>
+#include <tuple>
+#include <unordered_map>
+#include <string>
+#include <sstream>
 #include "xtensor/xarray.hpp"
+#include "xtensor/xadapt.hpp"
 #include "xtensor/xmath.hpp"
 #include "xtensor/xutils.hpp"
 #include "xtensor/xio.hpp"
@@ -77,6 +82,67 @@ void clip_grads(vector<reference_wrapper<xt::xarray<double>>> grads, double max_
             grads[i].get() *= rate;
         }
     }
+}
+
+vector<string> split(string str, char deliminator)
+{
+    vector<string> elems;
+    stringstream ss{str};
+    string split_s;
+    cout << str << endl;
+    while (getline(ss, split_s, deliminator))
+    {
+        if (!split_s.empty())
+        {
+            elems.push_back(split_s);
+        }
+    }
+    return elems;
+}
+
+string replace_string(string str, string target, string replacement) {
+    if (target.empty()) return str;
+    string::size_type pos = 0;
+    while((pos = str.find(target, pos)) != string::npos) {
+        str.replace(pos, str.length(), replacement);
+        pos += replacement.length();
+    }
+    return str;
+}
+
+tuple<xt::xarray<int>, unordered_map<string, int>, vector<string>> preprocess(string text)
+{
+    int new_id;
+    string word;
+    vector<int> ids;
+    // tolower
+    transform(text.begin(), text.end(), text.begin(), ::tolower);
+    // replace "." -> " ."
+    text = replace_string(text, ".", " .");
+    vector<string> words = split(text, ' ');
+
+    unordered_map<string, int> word_to_id;
+    vector<string> id_to_word;
+
+    for (int i = 0; i < words.size(); i++)
+    {
+        word = words[i];
+        if (word_to_id.count(word) == 0)
+        {
+            new_id = word_to_id.size();
+            word_to_id[word] = new_id;
+            id_to_word.push_back(word);
+            ids.push_back(new_id);
+        }
+        else
+        {
+            ids.push_back(word_to_id[word]);
+        }
+    }
+
+    std::vector<std::size_t> shape = {words.size()};
+    auto corpus = xt::adapt(ids, shape);
+    return {corpus, word_to_id, id_to_word};
 }
 
 #endif
