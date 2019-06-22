@@ -68,9 +68,6 @@ void clip_grads(vector<reference_wrapper<xt::xarray<double>>> grads, double max_
     for (int i = 0; i < grads.size(); i++)
     {
         total_norm += xt::sum(xt::square(grads[i].get()))(0);
-        // auto tmp_square = xt::square(grads[i].get());
-        // auto tmp_sum = xt::sum(tmp_square);
-        // total_norm += tmp_sum(0);
     }
     total_norm = std::sqrt(total_norm);
 
@@ -100,10 +97,13 @@ vector<string> split(string str, char deliminator)
     return elems;
 }
 
-string replace_string(string str, string target, string replacement) {
-    if (target.empty()) return str;
+string replace_string(string str, string target, string replacement)
+{
+    if (target.empty())
+        return str;
     string::size_type pos = 0;
-    while((pos = str.find(target, pos)) != string::npos) {
+    while ((pos = str.find(target, pos)) != string::npos)
+    {
         str.replace(pos, str.length(), replacement);
         pos += replacement.length();
     }
@@ -143,6 +143,46 @@ tuple<xt::xarray<int>, unordered_map<string, int>, vector<string>> preprocess(st
     std::vector<std::size_t> shape = {words.size()};
     auto corpus = xt::adapt(ids, shape);
     return {corpus, word_to_id, id_to_word};
+}
+
+xt::xarray<int> create_co_matrix(xt::xarray<int> corpus, int vocab_size, int window_size = 1)
+{
+    int word_id;
+    int left_idx;
+    int right_idx;
+    int left_word_id;
+    int right_word_id;
+    int corpus_size = corpus.size();
+    xt::xarray<int> co_matrix = xt::zeros<int>({vocab_size, vocab_size});
+
+    for (int idx = 0; idx < corpus_size; idx++)
+    {
+        for (int i = 1; i < window_size + 1; i++)
+        {
+            word_id = corpus(idx);
+            left_idx = idx - i;
+            right_idx = idx + i;
+
+            if (left_idx >= 0)
+            {
+                left_word_id = corpus(left_idx);
+                co_matrix(word_id, left_word_id) = co_matrix(word_id, left_word_id) + 1;
+            }
+            if (right_idx < corpus_size)
+            {
+                right_word_id = corpus(right_idx);
+                co_matrix(word_id, right_word_id) = co_matrix(word_id, right_word_id) + 1;
+            }
+        }
+    }
+    return co_matrix;
+}
+
+xt::xarray<double> cos_similarity(xt::xarray<double> &&x, xt::xarray<double> &&y, double eps = 1e-8)
+{
+    auto nx = xt::xarray<double>{x} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{x}, 2)));
+    auto ny = xt::xarray<double>{y} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{y}, 2)));
+    return xt::linalg::dot(nx, ny);
 }
 
 #endif
