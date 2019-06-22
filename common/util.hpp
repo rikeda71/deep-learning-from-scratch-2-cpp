@@ -13,6 +13,7 @@
 #include "xtensor/xmath.hpp"
 #include "xtensor/xutils.hpp"
 #include "xtensor/xio.hpp"
+#include "xtensor/xadapt.hpp"
 #include "xtensor-blas/xlinalg.hpp"
 
 using namespace std;
@@ -257,6 +258,27 @@ xt::xarray<double> ppmi(xt::xarray<int> C, bool verbose = false, double eps = 1e
         }
     }
     return M;
+}
+
+tuple<xt::xarray<int>, xt::xarray<int>> create_contexts_target(xt::xarray<int> corpus, int window_size = 1)
+{
+    xt::xarray<int> target = xt::view(corpus, xt::range(window_size, corpus.size() - window_size));
+    vector<int> contexts;
+
+    unsigned int cnt = 0; // コンテキストのループを通った回数をカウント
+    for (int idx = window_size; idx < corpus.size() - window_size; idx++)
+    {
+        for (int t = -window_size; t < window_size + 1; t++)
+        {
+            if (t == 0)
+                continue;
+            contexts.push_back(corpus(idx + t));
+        }
+        cnt++;
+    }
+    vector<std::size_t> shape{cnt, window_size * 2};
+    xt::xarray<int> contexts_vector = xt::adapt(contexts, shape);
+    return {contexts_vector, target};
 }
 
 #endif
