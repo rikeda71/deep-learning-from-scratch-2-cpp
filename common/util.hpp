@@ -181,15 +181,16 @@ xt::xarray<int> create_co_matrix(xt::xarray<int> corpus, int vocab_size, int win
 
 xt::xarray<double> cos_similarity(xt::xarray<double> &&x, xt::xarray<double> &&y, double eps = 1e-8)
 {
-    auto nx = xt::xarray<double>{x} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{x}, 2)));
-    auto ny = xt::xarray<double>{y} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{y}, 2)));
+    auto nx = xt::xarray<double>{x} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{x}, 2)) + eps);
+    auto ny = xt::xarray<double>{y} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{y}, 2)) + eps);
     return xt::linalg::dot(nx, ny);
 }
 
 void most_similar(string query, unordered_map<string, int> word_to_id, vector<string> id_to_word, xt::xarray<double> word_matrix, int top = 5)
 {
     // クエリを取り出す
-    if (word_to_id.count(query) == 0)  {
+    if (word_to_id.count(query) == 0)
+    {
         cout << query << " is not found" << endl;
         return;
     }
@@ -201,7 +202,8 @@ void most_similar(string query, unordered_map<string, int> word_to_id, vector<st
     // cos類似度の算出
     int vocab_size = id_to_word.size();
     vector<double> similarity;
-    for (int i =  0; i < vocab_size; i++) {
+    for (int i = 0; i < vocab_size; i++)
+    {
         similarity.push_back(cos_similarity(xt::view(word_matrix, i, xt::all()), query_vec)[0]);
     }
 
@@ -209,20 +211,52 @@ void most_similar(string query, unordered_map<string, int> word_to_id, vector<st
     std::sort(
         similarity.begin(),
         similarity.end(),
-        greater<double>()
-    );
+        greater<double>());
     int i = 0;
     int cnt = 0;
-    while(1) {
-        if (cnt >= top || i >= similarity.size()) return;
-        if (id_to_word[i]  == query) {
+    while (1)
+    {
+        if (cnt >= top || i >= similarity.size())
+            return;
+        if (id_to_word[i] == query)
+        {
             i++;
             continue;
         }
-        cout << id_to_word[i] << ": " << similarity[i]  << endl;
+        cout << id_to_word[i] << ": " << similarity[i] << endl;
         i++;
         cnt++;
     }
+}
+
+xt::xarray<double> ppmi(xt::xarray<int> C, bool verbose = false, double eps = 1e-8)
+{
+    auto shape = C.shape();
+    xt::xarray<double> M = xt::zeros<double>({shape[0], shape[1]});
+    xt::xarray<double> N = xt::sum(C);
+    xt::xarray<double> S = xt::sum(C, 0);
+    int total = shape[0] * shape[1];
+    int cnt = 0;
+    double pmi;
+
+    for (int i = 0; i < shape[0]; i++)
+    {
+        for (int j = 0; j < shape[1]; j++)
+        {
+            pmi = xt::log2(C(i, j) * N / (S(j) * S(i)) + eps)[0];
+            M(i, j) = (0.0 < pmi) ? pmi : 0.0;
+
+            if (verbose)
+            {
+                cnt += 1;
+                if (cnt % (total / 100) == 0)
+                {
+                    cout << 100 * cnt / total << "% done" << endl;
+                }
+            }
+        }
+    }
+    return M;
 }
 
 #endif

@@ -15,7 +15,8 @@ INCLUDES = \
 LIBS = \
 -lpython3.6m \
 -lcblas \
--lblas
+-lblas \
+-llapack
 
 
 TGTS = `ls ch*/*.cpp | sed -e s/.cpp//`
