@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <string>
 #include <sstream>
+#include <algorithm>
 #include "xtensor/xarray.hpp"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xmath.hpp"
@@ -183,6 +184,45 @@ xt::xarray<double> cos_similarity(xt::xarray<double> &&x, xt::xarray<double> &&y
     auto nx = xt::xarray<double>{x} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{x}, 2)));
     auto ny = xt::xarray<double>{y} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{y}, 2)));
     return xt::linalg::dot(nx, ny);
+}
+
+void most_similar(string query, unordered_map<string, int> word_to_id, vector<string> id_to_word, xt::xarray<double> word_matrix, int top = 5)
+{
+    // クエリを取り出す
+    if (word_to_id.count(query) == 0)  {
+        cout << query << " is not found" << endl;
+        return;
+    }
+
+    cout << "\n [query] " << query << endl;
+    int query_id = word_to_id[query];
+    auto query_vec = xt::view(word_matrix, query_id, xt::all());
+
+    // cos類似度の算出
+    int vocab_size = id_to_word.size();
+    vector<double> similarity;
+    for (int i =  0; i < vocab_size; i++) {
+        similarity.push_back(cos_similarity(xt::view(word_matrix, i, xt::all()), query_vec)[0]);
+    }
+
+    // cos類似度の結果から，その値を高い順に出力
+    std::sort(
+        similarity.begin(),
+        similarity.end(),
+        greater<double>()
+    );
+    int i = 0;
+    int cnt = 0;
+    while(1) {
+        if (cnt >= top || i >= similarity.size()) return;
+        if (id_to_word[i]  == query) {
+            i++;
+            continue;
+        }
+        cout << id_to_word[i] << ": " << similarity[i]  << endl;
+        i++;
+        cnt++;
+    }
 }
 
 #endif
