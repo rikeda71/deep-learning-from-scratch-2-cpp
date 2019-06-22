@@ -3,7 +3,13 @@
 
 #include <iostream>
 #include <vector>
+#include <tuple>
+#include <unordered_map>
+#include <string>
+#include <sstream>
+#include <algorithm>
 #include "xtensor/xarray.hpp"
+#include "xtensor/xadapt.hpp"
 #include "xtensor/xmath.hpp"
 #include "xtensor/xutils.hpp"
 #include "xtensor/xio.hpp"
@@ -63,9 +69,6 @@ void clip_grads(vector<reference_wrapper<xt::xarray<double>>> grads, double max_
     for (int i = 0; i < grads.size(); i++)
     {
         total_norm += xt::sum(xt::square(grads[i].get()))(0);
-        // auto tmp_square = xt::square(grads[i].get());
-        // auto tmp_sum = xt::sum(tmp_square);
-        // total_norm += tmp_sum(0);
     }
     total_norm = std::sqrt(total_norm);
 
@@ -77,6 +80,183 @@ void clip_grads(vector<reference_wrapper<xt::xarray<double>>> grads, double max_
             grads[i].get() *= rate;
         }
     }
+}
+
+vector<string> split(string str, char deliminator)
+{
+    vector<string> elems;
+    stringstream ss{str};
+    string split_s;
+    cout << str << endl;
+    while (getline(ss, split_s, deliminator))
+    {
+        if (!split_s.empty())
+        {
+            elems.push_back(split_s);
+        }
+    }
+    return elems;
+}
+
+string replace_string(string str, string target, string replacement)
+{
+    if (target.empty())
+        return str;
+    string::size_type pos = 0;
+    while ((pos = str.find(target, pos)) != string::npos)
+    {
+        str.replace(pos, str.length(), replacement);
+        pos += replacement.length();
+    }
+    return str;
+}
+
+tuple<xt::xarray<int>, unordered_map<string, int>, vector<string>> preprocess(string text)
+{
+    int new_id;
+    string word;
+    vector<int> ids;
+    // tolower
+    transform(text.begin(), text.end(), text.begin(), ::tolower);
+    // replace "." -> " ."
+    text = replace_string(text, ".", " .");
+    vector<string> words = split(text, ' ');
+
+    unordered_map<string, int> word_to_id;
+    vector<string> id_to_word;
+
+    for (int i = 0; i < words.size(); i++)
+    {
+        word = words[i];
+        if (word_to_id.count(word) == 0)
+        {
+            new_id = word_to_id.size();
+            word_to_id[word] = new_id;
+            id_to_word.push_back(word);
+            ids.push_back(new_id);
+        }
+        else
+        {
+            ids.push_back(word_to_id[word]);
+        }
+    }
+
+    std::vector<std::size_t> shape = {words.size()};
+    auto corpus = xt::adapt(ids, shape);
+    return {corpus, word_to_id, id_to_word};
+}
+
+xt::xarray<int> create_co_matrix(xt::xarray<int> corpus, int vocab_size, int window_size = 1)
+{
+    int word_id;
+    int left_idx;
+    int right_idx;
+    int left_word_id;
+    int right_word_id;
+    int corpus_size = corpus.size();
+    xt::xarray<int> co_matrix = xt::zeros<int>({vocab_size, vocab_size});
+
+    for (int idx = 0; idx < corpus_size; idx++)
+    {
+        for (int i = 1; i < window_size + 1; i++)
+        {
+            word_id = corpus(idx);
+            left_idx = idx - i;
+            right_idx = idx + i;
+
+            if (left_idx >= 0)
+            {
+                left_word_id = corpus(left_idx);
+                co_matrix(word_id, left_word_id) = co_matrix(word_id, left_word_id) + 1;
+            }
+            if (right_idx < corpus_size)
+            {
+                right_word_id = corpus(right_idx);
+                co_matrix(word_id, right_word_id) = co_matrix(word_id, right_word_id) + 1;
+            }
+        }
+    }
+    return co_matrix;
+}
+
+xt::xarray<double> cos_similarity(xt::xarray<double> &&x, xt::xarray<double> &&y, double eps = 1e-8)
+{
+    auto nx = xt::xarray<double>{x} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{x}, 2)) + eps);
+    auto ny = xt::xarray<double>{y} / xt::sqrt(xt::sum(xt::pow(xt::xarray<double>{y}, 2)) + eps);
+    return xt::linalg::dot(nx, ny);
+}
+
+void most_similar(string query, unordered_map<string, int> word_to_id, vector<string> id_to_word, xt::xarray<double> word_matrix, int top = 5)
+{
+    // クエリを取り出す
+    if (word_to_id.count(query) == 0)
+    {
+        cout << query << " is not found" << endl;
+        return;
+    }
+
+    cout << "\n [query] " << query << endl;
+    int query_id = word_to_id[query];
+    auto query_vec = xt::view(word_matrix, query_id, xt::all());
+
+    // cos類似度の算出
+    int vocab_size = id_to_word.size();
+    vector<double> similarity;
+    for (int i = 0; i < vocab_size; i++)
+    {
+        similarity.push_back(cos_similarity(xt::view(word_matrix, i, xt::all()), query_vec)[0]);
+    }
+
+    // cos類似度の結果から，その値を高い順に出力
+    std::sort(
+        similarity.begin(),
+        similarity.end(),
+        greater<double>());
+    int i = 0;
+    int cnt = 0;
+    while (1)
+    {
+        if (cnt >= top || i >= similarity.size())
+            return;
+        if (id_to_word[i] == query)
+        {
+            i++;
+            continue;
+        }
+        cout << id_to_word[i] << ": " << similarity[i] << endl;
+        i++;
+        cnt++;
+    }
+}
+
+xt::xarray<double> ppmi(xt::xarray<int> C, bool verbose = false, double eps = 1e-8)
+{
+    auto shape = C.shape();
+    xt::xarray<double> M = xt::zeros<double>({shape[0], shape[1]});
+    xt::xarray<double> N = xt::sum(C);
+    xt::xarray<double> S = xt::sum(C, 0);
+    int total = shape[0] * shape[1];
+    int cnt = 0;
+    double pmi;
+
+    for (int i = 0; i < shape[0]; i++)
+    {
+        for (int j = 0; j < shape[1]; j++)
+        {
+            pmi = xt::log2(C(i, j) * N / (S(j) * S(i)) + eps)[0];
+            M(i, j) = (0.0 < pmi) ? pmi : 0.0;
+
+            if (verbose)
+            {
+                cnt += 1;
+                if (cnt % (total / 100) == 0)
+                {
+                    cout << 100 * cnt / total << "% done" << endl;
+                }
+            }
+        }
+    }
+    return M;
 }
 
 #endif
