@@ -12,7 +12,6 @@ int main()
 {
     string text("You say goodbye and I say hello.");
     auto [corpus, w2i, i2w] = preprocess(text);
-    unordered_map<string, int>::iterator iter;
     cout << corpus << endl;
     cout_vector(i2w);
     auto [contexts, target] = create_contexts_target(corpus, 1);

@@ -150,7 +150,7 @@ inline xarray<double> MatMul::backward(xarray<double> &&dout)
 {
   xarray<double> W = params[0];
   auto dx = linalg::dot(dout, transpose(W));
-  xarray<double> dW = linalg::dot(transpose(x), dout);
+  xarray<double> dW = linalg::dot(transpose(this->x), dout);
   grads[0] = dW;
   return dx;
 }

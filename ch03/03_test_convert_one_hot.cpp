@@ -12,7 +12,6 @@ int main()
 {
     string text("You say goodbye and I say hello.");
     auto [corpus, w2i, i2w] = preprocess(text);
-    unordered_map<string, int>::iterator iter;
     auto [contexts, target] = create_contexts_target(corpus, 1);
     int vocab_size = w2i.size();
     cout << "convert contexts" << endl;
