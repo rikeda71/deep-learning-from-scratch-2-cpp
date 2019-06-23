@@ -260,7 +260,7 @@ xt::xarray<double> ppmi(xt::xarray<int> C, bool verbose = false, double eps = 1e
     return M;
 }
 
-tuple<xt::xarray<int>, xt::xarray<int>> create_contexts_target(xt::xarray<int> corpus, int window_size = 1)
+tuple<xt::xarray<double>, xt::xarray<int>> create_contexts_target(xt::xarray<int> corpus, int window_size = 1)
 {
     xt::xarray<int> target = xt::view(corpus, xt::range(window_size, corpus.size() - window_size));
     vector<int> contexts;
@@ -277,11 +277,12 @@ tuple<xt::xarray<int>, xt::xarray<int>> create_contexts_target(xt::xarray<int> c
         cnt++;
     }
     vector<std::size_t> shape{cnt, (unsigned int)window_size * 2};
-    xt::xarray<int> contexts_vector = xt::adapt(contexts, shape);
+    xt::xarray<double> contexts_vector = xt::adapt(contexts, shape);
     return {contexts_vector, target};
 }
 
-xt::xarray<int> convert_one_hot(xt::xarray<int> corpus, int vocab_size)
+template <class T>
+xt::xarray<T> convert_one_hot(xt::xarray<T> corpus, int vocab_size)
 {
 
     int N = corpus.shape()[0];
