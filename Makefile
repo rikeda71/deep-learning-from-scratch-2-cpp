@@ -6,7 +6,7 @@ INCLUDES = \
 -I common/ \
 -I dataset/ \
 -I /usr/include/python3.6/ \
--I /opt/conda/pkgs/xtl-0.6.2-hc9558a2_0/include/ \
+-I /opt/conda/pkgs/xtl-0.6.4-hc9558a2_0/include/ \
 -I xtensor/include/ \
 -I xtensor-blas/include \
 -I xtensor-blas/include/xtensor-blas/flens \
@@ -16,7 +16,9 @@ LIBS = \
 -lpython3.6m \
 -lcblas \
 -lblas \
--llapack
+-llapack \
+# -lptb
+# $(python-config --cflags) $(python-config --ldflags) \
 
 
 TGTS = `ls ch*/*.cpp | sed -e s/.cpp//`

@@ -44,3 +44,4 @@ ch*/*
 !ch*/*.cpp
 !ch*/*.hpp
 *.png
+.mypy_cache/

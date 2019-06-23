@@ -29,7 +29,9 @@ RUN apt update &&\
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh &&\
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc &&\
     . ~/.bashrc &&\
-    conda install -c conda-forge xtl
+    conda install -c conda-forge xtl &&\
+    conda install -c conda-forge cython &&\
+    conda install -c conda-forge numpy
 WORKDIR /app
 
 
