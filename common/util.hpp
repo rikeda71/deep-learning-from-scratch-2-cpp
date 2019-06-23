@@ -276,9 +276,44 @@ tuple<xt::xarray<int>, xt::xarray<int>> create_contexts_target(xt::xarray<int> c
         }
         cnt++;
     }
-    vector<std::size_t> shape{cnt, window_size * 2};
+    vector<std::size_t> shape{cnt, (unsigned int)window_size * 2};
     xt::xarray<int> contexts_vector = xt::adapt(contexts, shape);
     return {contexts_vector, target};
+}
+
+xt::xarray<int> convert_one_hot(xt::xarray<int> corpus, int vocab_size)
+{
+
+    int N = corpus.shape()[0];
+    int C;
+    int word_id;
+    xt::xarray<int> one_hot;
+
+    if (corpus.dimension() == 1)
+    {
+        one_hot = xt::zeros<int>({N, vocab_size});
+        for (int idx = 0; idx < N; idx++)
+        {
+            word_id = corpus(idx);
+            xt::view(one_hot, idx, word_id) = 1;
+        }
+    }
+    else if (corpus.dimension() == 2)
+    {
+        C = corpus.shape()[1];
+        one_hot = xt::zeros<int>({N, C, vocab_size});
+        for (int idx_0 = 0; idx_0 < N; idx_0++)
+        {
+            auto word_ids = xt::view(corpus, idx_0, xt::all());
+            for (int idx_1 = 0; idx_1 < word_ids.size(); idx_1++)
+            {
+                word_id = corpus(idx_0, idx_1);
+                xt::view(one_hot, idx_0, idx_1, word_id) = 1;
+            }
+        }
+    }
+
+    return one_hot;
 }
 
 #endif
