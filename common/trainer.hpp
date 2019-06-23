@@ -63,17 +63,30 @@ inline void Trainer::fit(xarray<double> x, xarray<int> t, int max_epoch = 10, in
         auto idx = xt::random::permutation<int>(data_size);
         for (int i = 0; i < data_size; i++)
         {
-            for (int j = 0; j < 3; j++)
+            if (x.dimension() == 2)
             {
-                epoch_x(i, j) = x(idx(i), j);
-                epoch_t(i, j) = t(idx(i), j);
+                xt::view(epoch_x, i, xt::all()) = xt::view(x, idx(i), xt::all());
+                xt::view(epoch_t, i, xt::all()) = xt::view(t, idx(i), xt::all());
+            }
+            else if (x.dimension() == 3)
+            {
+                xt::view(epoch_x, i, xt::all(), xt::all()) = xt::view(x, idx(i), xt::all(), xt::all());
+                xt::view(epoch_t, i, xt::all(), xt::all()) = xt::view(t, idx(i), xt::all(), xt::all());
             }
         }
 
         for (int iters = 0; iters < max_iters; iters++)
         {
-            batch_x = xt::view(epoch_x, xt::range(iters * batch_size, (iters + 1) * batch_size), xt::all());
-            batch_t = xt::view(epoch_t, xt::range(iters * batch_size, (iters + 1) * batch_size), xt::all());
+            if (x.dimension() == 2)
+            {
+                batch_x = xt::view(epoch_x, xt::range(iters * batch_size, (iters + 1) * batch_size), xt::all());
+                batch_t = xt::view(epoch_t, xt::range(iters * batch_size, (iters + 1) * batch_size), xt::all());
+            }
+            else if (x.dimension() == 3)
+            {
+                batch_x = xt::view(epoch_x, xt::range(iters * batch_size, (iters + 1) * batch_size), xt::all(), xt::all());
+                batch_t = xt::view(epoch_t, xt::range(iters * batch_size, (iters + 1) * batch_size), xt::all(), xt::all());
+            }
 
             // 勾配を求め，パラメータを更新
             loss = model_->forward(batch_x, batch_t);

@@ -13,6 +13,7 @@
 #include "xtensor/xmath.hpp"
 #include "xtensor/xutils.hpp"
 #include "xtensor/xio.hpp"
+#include "xtensor/xadapt.hpp"
 #include "xtensor-blas/xlinalg.hpp"
 
 using namespace std;
@@ -257,6 +258,63 @@ xt::xarray<double> ppmi(xt::xarray<int> C, bool verbose = false, double eps = 1e
         }
     }
     return M;
+}
+
+tuple<xt::xarray<double>, xt::xarray<int>> create_contexts_target(xt::xarray<int> corpus, int window_size = 1)
+{
+    xt::xarray<int> target = xt::view(corpus, xt::range(window_size, corpus.size() - window_size));
+    vector<int> contexts;
+
+    unsigned int cnt = 0; // コンテキストのループを通った回数をカウント
+    for (int idx = window_size; idx < corpus.size() - window_size; idx++)
+    {
+        for (int t = -window_size; t < window_size + 1; t++)
+        {
+            if (t == 0)
+                continue;
+            contexts.push_back(corpus(idx + t));
+        }
+        cnt++;
+    }
+    vector<std::size_t> shape{cnt, (unsigned int)window_size * 2};
+    xt::xarray<double> contexts_vector = xt::adapt(contexts, shape);
+    return {contexts_vector, target};
+}
+
+template <class T>
+xt::xarray<T> convert_one_hot(xt::xarray<T> corpus, int vocab_size)
+{
+
+    int N = corpus.shape()[0];
+    int C;
+    int word_id;
+    xt::xarray<int> one_hot;
+
+    if (corpus.dimension() == 1)
+    {
+        one_hot = xt::zeros<int>({N, vocab_size});
+        for (int idx = 0; idx < N; idx++)
+        {
+            word_id = corpus(idx);
+            xt::view(one_hot, idx, word_id) = 1;
+        }
+    }
+    else if (corpus.dimension() == 2)
+    {
+        C = corpus.shape()[1];
+        one_hot = xt::zeros<int>({N, C, vocab_size});
+        for (int idx_0 = 0; idx_0 < N; idx_0++)
+        {
+            auto word_ids = xt::view(corpus, idx_0, xt::all());
+            for (int idx_1 = 0; idx_1 < word_ids.size(); idx_1++)
+            {
+                word_id = corpus(idx_0, idx_1);
+                xt::view(one_hot, idx_0, idx_1, word_id) = 1;
+            }
+        }
+    }
+
+    return one_hot;
 }
 
 #endif
