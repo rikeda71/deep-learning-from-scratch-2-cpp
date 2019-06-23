@@ -42,4 +42,5 @@
 .vscode
 ch*/*
 !ch*/*.cpp
+!ch*/*.hpp
 *.png
