@@ -9,10 +9,8 @@ RUN apt update &&\
     cmake \
     make \
     gdb \
-    python3-matplotlib \
     python3-numpy \
     python3-dev \
-    python3-tk \
     build-essential \
     libgtest-dev \
     libopenblas-dev \
@@ -31,7 +29,8 @@ RUN apt update &&\
     . ~/.bashrc &&\
     conda install -c conda-forge xtl &&\
     conda install -c conda-forge cython &&\
-    conda install -c conda-forge numpy
+    conda install -c conda-forge tk &&\
+    conda install -c conda-forge matplotlib
 WORKDIR /app
 
 
